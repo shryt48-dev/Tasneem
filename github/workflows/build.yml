@@ -1,0 +1,29 @@
+name: build
+on: [push, workflow_dispatch]
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          f=$(ls *.zip | head -1)
+          unzip -q "$f" -d _x
+          d=$(ls -d _x/*/ | head -1)
+          shopt -s dotglob
+          cp -r "$d"* .
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: android-actions/setup-android@v3
+      - run: npm install
+      - run: npx cap add android
+      - run: npx cap sync android
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nabd-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
